@@ -73,6 +73,8 @@ Environment variables required for usage:
 - `PATENTPACK_PV_KEY` ([USPTO PatentsView API key](https://search.patentsview.org/docs/docs/Search%20API/SearchAPIReference/#request-an-api-key))
 - `OPS_KEY` / `OPS_SECRET` ([EPO OPS credentials](https://developers.epo.org/))
 
+Set these in an `.env` file at project root or in some other way in your environment.
+
 ## Usage
 
 CLI commands:
