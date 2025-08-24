@@ -13,11 +13,11 @@ Count patents for a company in a CPC category:
 ```bash
 # USPTO (PatentsView)
 python -m patentpack.cli count-cpc-company-year "BASF SE" --year 2021 --cpc Y02 --provider uspto
-# → 69
+# → expect non-negative non-zero integer
 
 # EPO (OPS)
 python -m patentpack.cli count-cpc-company-year "TESLA INC" --year 2021 --cpc Y02 --provider epo
-# → 68
+# → expect non-negative non-zero integer
 ```
 
 Or use the Python API directly:
