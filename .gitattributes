@@ -1,0 +1,4 @@
+*.html linguist-generated
+*.tex linguist-generated
+*.ipynb linguist-generated
+Makefile linguist-vendored

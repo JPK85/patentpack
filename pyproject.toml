@@ -1,0 +1,42 @@
+[project]
+name = "patentpack"
+version = "0.1.0"
+description = "Utility for patent fetching from APIs"
+authors = [
+    {name = "JPK85",email = "52880112+JPK85@users.noreply.github.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+linelength = 79
+
+[tool.coverage.report]
+omit = ["tests/*", "scripts/check_environment.py", "*/__init__.py"]
+exclude_lines = [
+    "continue",
+    "if TYPE_CHECKING",
+    "if typing.TYPE_CHECKING",
+    "if __name__ == '__main__':",
+    "return NotImplemented",
+    "raise NotImplementedError",
+    "print",
+    "logger.",
+]
+
+[tool.pyright]
+pythonVersion = "3.12"
+extraPaths = [
+    "/opt/homebrew/Caskroom/miniconda/base/envs/patentpack/lib/python3.12/site-packages"
+]
