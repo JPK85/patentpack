@@ -9,12 +9,21 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "packaging (>=25.0,<26.0)",
+    "toml (>=0.10.2,<0.11.0)",
+    "typer (>=0.16.1,<0.17.0)",
+    "python-dotenv (>=1.1.1,<2.0.0)",
+    "requests (>=2.32.5,<3.0.0)",
+    "urllib3 (>=2.5.0,<3.0.0)"
 ]
 
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+patentpack = "patentpack.cli:main"
 
 [tool.isort]
 profile = "black"
@@ -39,4 +48,22 @@ exclude_lines = [
 pythonVersion = "3.12"
 extraPaths = [
     "/opt/homebrew/Caskroom/miniconda/base/envs/patentpack/lib/python3.12/site-packages"
+]
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.10.5"
+pynvim = "^0.5.2"
+pytest = "^8.4.1"
+pytest-cov = "^6.2.1"
+python-dotenv = "^1.1.1"
+black = "^25.1.0"
+isort = "^6.0.1"
+flake8 = "^7.3.0"
+
+[tool.pytest.ini_options]
+markers = [
+  "live: hits real external services (network)",
+  "uspto: tests for the USPTO provider",
+  "epo: tests for the EPO OPS provider",
+  "gleif: tests for the GLEIF resolver"
 ]
