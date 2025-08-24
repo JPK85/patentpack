@@ -10,7 +10,13 @@ def update_version_in_init():
         return
 
     pyproject = toml.load(pyproject_path)
-    version = pyproject["tool"]["poetry"]["version"]
+
+    if "tool" in pyproject and "poetry" in pyproject["tool"]:
+        version = pyproject["tool"]["poetry"]["version"]
+    elif "project" in pyproject:
+        version = pyproject["project"]["version"]
+    else:
+        raise RuntimeError("Could not find version in pyproject.toml")
 
     init_file_path = (
         Path(__file__).parent.parent / "src" / "patentpack" / "__init__.py"
