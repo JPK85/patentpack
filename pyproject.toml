@@ -1,6 +1,6 @@
 [project]
 name = "patentpack"
-version = "0.1.0"
+version = "0.1.1"
 description = "Utility for patent fetching from APIs"
 authors = [
     {name = "JPK85",email = "52880112+JPK85@users.noreply.github.com"}
