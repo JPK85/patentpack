@@ -3,6 +3,9 @@
 
 Utility for fetching and normalizing patent and assignee data from public APIs.
 
+> [!WARNING]
+> This package is highly experimental and probably NOT safe for general installation.
+
 ## Quickstart
 
 Count patents for a company in a CPC category:
