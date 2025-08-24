@@ -1,56 +1,103 @@
 
 # patentpack
 
-> Initially created on 2025-08-24.
+Utility for fetching and normalizing patent and assignee data from public APIs.
 
-tility for patent fetching from API
+## Quickstart
 
-## Table of Contents
+Count patents for a company in a CPC category:
 
-- [Background](#background)
-- [Data](#data)
-- [Setup](#setup)
-- [Usage](#usage)
-- [Results](#results)
-- [License](#license)
-- [Contact](#contact)
+```bash
+# USPTO (PatentsView)
+python -m patentpack.cli count-cpc-company-year "BASF SE" --year 2021 --cpc Y02 --provider uspto
+# → 69
 
-## Background
+# EPO (OPS)
+python -m patentpack.cli count-cpc-company-year "TESLA INC" --year 2021 --cpc Y02 --provider epo
+# → 68
+```
 
-Describe the problem you're solving, the objectives of the project, and any relevant theories or frameworks.
-> **DOI/arXiv**: [Insert DOI or arXiv reference here]
+Or use the Python API directly:
 
-## Data
+```python
+from patentpack.client import PatentPack
+from patentpack.core.contracts import Provider
 
-Where does the data come from? How can it be accessed? Include any data cleaning or transformation steps.
+pp = PatentPack(Provider.USPTO, rpm=30)
+res = pp.count_cpc_company_year(year=2021, cpc="Y02", company="BASF SE")
+print(res.total)
+```
+
+## Features
+
+- **USPTO (PatentsView)**: count patents by CPC, year, and assignee
+- **EPO (OPS)**: query CPC + applicant across publication years
+- **GLEIF**: search LEI records, normalize corporate names, and match assignees
+- **Organization Normalization (`orgnorm`)**: canonicalization, stemming, and query expansion for company names
+
+## Project Layout
+
+```
+patentpack/
+├── scripts/                   # helper scripts
+├── src/patentpack/
+│   ├── cli.py                 # Typer CLI entrypoint
+│   ├── client.py              # PatentPack facade
+│   ├── config.py              # environment + defaults
+│   ├── core/                  # base contracts & interfaces
+│   ├── providers/             # USPTO + EPO provider wrappers
+│   ├── gleif/                 # GLEIF search, parse, match
+│   └── common/orgnorm/        # normalization & variants
+└── tests/                     # pytest + coverage
+```
 
 ## Setup
 
-- Software requirements
-- How to install dependencies, if any
+Install with Poetry (preferred):
+
+```bash
+poetry install
+```
+
+or directly in your `conda`/`venv`:
+
+```bash
+pip install -e .
+```
+
+Environment variables required for usage:
+
+- `PATENTPACK_PV_KEY` (USPTO PatentsView API key)
+- `OPS_KEY` / `OPS_SECRET` (EPO OPS credentials)
 
 ## Usage
 
-How to run the code, including examples of inputs and expected outputs.
+CLI commands:
 
-Use codeblocks with syntax highlighting for documenting usage:
+```bash
+# Count BASF Y02 patents in 2021 from USPTO
+python -m patentpack.cli count-cpc-company-year "BASF SE" --year 2021 --cpc Y02 --provider uspto
 
-```python
-import numpy as np
-
-def function():
-  return None
+# Count Tesla Y02 patents in 2021 from EPO
+python -m patentpack.cli count-cpc-company-year "TESLA INC" --year 2021 --cpc Y02 --provider epo
 ```
 
-## Results
+Python API:
 
-Summary of the results, possibly including figures, tables, or links to more detailed documents.
+```python
+from patentpack.client import PatentPack
+from patentpack.core.contracts import Provider
 
-## License
+pp = PatentPack(Provider.USPTO, rpm=30)
+res = pp.count_cpc_company_year(year=2021, cpc="Y02", company="BASF SE")
+print(res.total)
+```
 
-The project is licensed under the {'text': 'MIT'} License.
+## Testing
 
-## Contact
+Run tests with `pytest` and `coverage`
 
-Your Name – Your Email – Your GitHub Profile
-
+```bash
+coverage run -m pytest
+coverage report -m
+```
