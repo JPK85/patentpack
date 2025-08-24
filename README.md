@@ -70,8 +70,8 @@ pip install -e .
 
 Environment variables required for usage:
 
-- `PATENTPACK_PV_KEY` (USPTO PatentsView API key)
-- `OPS_KEY` / `OPS_SECRET` (EPO OPS credentials)
+- `PATENTPACK_PV_KEY` ([USPTO PatentsView API key](https://search.patentsview.org/docs/docs/Search%20API/SearchAPIReference/#request-an-api-key))
+- `OPS_KEY` / `OPS_SECRET` ([EPO OPS credentials](https://developers.epo.org/))
 
 ## Usage
 
