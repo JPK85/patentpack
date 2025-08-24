@@ -1,46 +1,59 @@
+import sys
 from pathlib import Path
 
-import toml
+try:
+    import tomllib  # py3.11+
+except ModuleNotFoundError:  # py3.10 fallback
+    import tomli as tomllib  # type: ignore[no-redef]
+
+
+def read_version(pyproject_path: Path) -> str:
+    data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    # New Poetry (PEP 621)
+    proj = data.get("project") or {}
+    if "version" in proj:
+        return str(proj["version"]).strip()
+    # Legacy Poetry
+    tool = data.get("tool") or {}
+    poetry = tool.get("poetry") or {}
+    if "version" in poetry:
+        return str(poetry["version"]).strip()
+    raise KeyError("version not found in [project] or [tool.poetry]")
 
 
 def update_version_in_init():
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+    repo_root = Path(__file__).resolve().parent.parent
+    pyproject_path = repo_root / "pyproject.toml"
+    init_file_path = repo_root / "src" / "patentpack" / "__init__.py"
+
     if not pyproject_path.exists():
-        print(f"pyproject.toml not found at {pyproject_path}")
-        return
-
-    pyproject = toml.load(pyproject_path)
-
-    if "tool" in pyproject and "poetry" in pyproject["tool"]:
-        version = pyproject["tool"]["poetry"]["version"]
-    elif "project" in pyproject:
-        version = pyproject["project"]["version"]
-    else:
-        raise RuntimeError("Could not find version in pyproject.toml")
-
-    init_file_path = (
-        Path(__file__).parent.parent / "src" / "patentpack" / "__init__.py"
-    )
+        print(f"pyproject.toml not found at {pyproject_path}", file=sys.stderr)
+        sys.exit(1)
     if not init_file_path.exists():
-        print(f"__init__.py not found at {init_file_path}")
-        return
+        print(f"__init__.py not found at {init_file_path}", file=sys.stderr)
+        sys.exit(1)
 
-    init_file_content = init_file_path.read_text()
-    new_init_file_content = ""
-    version_found = False
+    version = read_version(pyproject_path)
 
-    for line in init_file_content.split("\n"):
-        if line.startswith("__version__"):
-            new_init_file_content += f"__version__ = '{version}'\n"
-            version_found = True
+    init_text = init_file_path.read_text(encoding="utf-8")
+    lines = init_text.splitlines()
+    out_lines = []
+    replaced = False
+    for line in lines:
+        if line.strip().startswith("__version__"):
+            out_lines.append(f"__version__ = '{version}'")
+            replaced = True
         else:
-            new_init_file_content += f"{line}\n"
+            out_lines.append(line)
+    if not replaced:
+        # Ensure a trailing newline, then append
+        if out_lines and out_lines[-1] != "":
+            out_lines.append("")
+        out_lines.append(f"__version__ = '{version}'")
 
-    if not version_found:
-        new_init_file_content += f"__version__ = '{version}'\n"
-
-    init_file_path.write_text(new_init_file_content.strip())
-    print(f"Updated __version__ in __init__.py to {version}")
+    new_text = "\n".join(out_lines).rstrip() + "\n"
+    init_file_path.write_text(new_text, encoding="utf-8")
+    print(f"Updated __version__ in {init_file_path} to {version}")
 
 
 if __name__ == "__main__":
