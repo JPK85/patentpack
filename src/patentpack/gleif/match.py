@@ -22,12 +22,25 @@ PRIORITY = {
 }
 
 
+def _normalize_plural_s(stem: str) -> str:
+    # collapse simple plural forms: tokens >3 chars, trailing 's' -> singular
+    # e.g., 'machines' -> 'machine'
+    parts = stem.split()
+    out = []
+    for t in parts:
+        if len(t) > 3 and t.endswith("s"):
+            out.append(t[:-1])
+        else:
+            out.append(t)
+    return " ".join(out)
+
+
 def rule_for(target_name: str, legal: str, other_names: List[str]) -> str:
     # comparison-normalized (ADR suffix stripped; diacritics folded; '&' normalized; stopwords handled in stem)
     tn = cmp_norm(target_name)
-    ts = cmp_stem(target_name)
+    ts = _normalize_plural_s(cmp_stem(target_name))
     l_n = cmp_norm(legal)
-    l_s = cmp_stem(legal)
+    l_s = _normalize_plural_s(cmp_stem(legal))
 
     # --- dot-insensitive "exact" equality (handles Inc vs Inc., NV vs N.V., etc.) ---
     def undot(x: str) -> str:

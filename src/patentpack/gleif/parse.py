@@ -18,11 +18,14 @@ def as_other_names(arr: Any) -> List[str]:
         for x in arr:
             if isinstance(x, dict):
                 nm = x.get("name", "")
-            else:
-                nm = str(x)
-            nm = (nm or "").strip()
-            if nm:
-                out.append(nm)
+                nm = (nm or "").strip()
+                if isinstance(nm, str) and nm:
+                    out.append(nm)
+            elif isinstance(x, str):
+                nm = x.strip()
+                if nm:
+                    out.append(nm)
+            # else: ignore non-strings like numbers, None, etc.
     return out
 
 
