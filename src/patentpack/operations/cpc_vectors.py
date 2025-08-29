@@ -64,6 +64,8 @@ def cpc_class_vector(
     which: Optional[Which] = None,
     utility_only: bool = False,
     keep_zeros: bool = True,
+    verbose: bool = False,
+    log_every: int = 25,
 ) -> CPCVectorResult:
     """
     Provider-agnostic CPC count vector for a single company-year.
@@ -93,11 +95,8 @@ def cpc_class_vector(
     prefixes = [_prefix_for_level(c, lvl) for c in _norm_codes(codes)]
 
     out: Dict[str, int] = {}
-    for pref in prefixes:
-        if not pref:
-            out[pref] = 0
-            continue
-
+    total = len(prefixes)
+    for i, pref in enumerate(prefixes, start=1):
         kwargs = dict(year=year, company=company, cpc=pref)
         if which is not None:
             kwargs["which"] = which
@@ -105,7 +104,18 @@ def cpc_class_vector(
             kwargs["utility_only"] = True
 
         res: CountResult = provider.count_by_cpc_company_year(**kwargs)  # type: ignore[arg-type]
-        out[pref] = int(res.total or 0)
+        cnt = int(res.total or 0)
+        out[pref] = cnt
+
+        if verbose and (
+            i == 1 or i % max(1, int(log_every)) == 0 or i == total
+        ):
+            print(
+                f"[cpc_vector] {i:>4}/{total:<4} | "
+                f"{company:<40} {year} | "
+                f"{level:<8}={pref:<8} | "
+                f"count={cnt:>6}"
+            )
 
     if not keep_zeros:
         out = {k: v for k, v in out.items() if v}
