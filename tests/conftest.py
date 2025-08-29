@@ -1,7 +1,10 @@
 import os
+from pathlib import Path
 from typing import Any, Dict
 
 import pytest
+
+from patentpack.idmap.cache import NamePlanCache
 
 # Load .env if present, but don't fail if it's missing.
 try:
@@ -176,3 +179,48 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     # If a test is marked live but we're not in LIVE mode, skip it proactively.
     if "live" in item.keywords and not LIVE:
         pytest.skip("live test skipped (PATENTPACK_LIVE_TESTS not enabled)")
+
+
+@pytest.fixture
+def temp_cache_dir(tmp_path: Path) -> Path:
+    """Isolated temp directory for NamePlanCache tests."""
+    d = tmp_path / "idmap-cache"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+@pytest.fixture
+def sample_cache(temp_cache_dir: Path) -> NamePlanCache:
+    """A NamePlanCache wired to a temp file (empty by default)."""
+    cache_path = temp_cache_dir / "nameplan_cache.jsonl"
+    # ensure file exists but empty
+    cache_path.write_text("", encoding="utf-8")
+    return NamePlanCache(path=cache_path)
+
+
+class _MockProvider:
+    """Minimal provider for iterator/runner tests (no network)."""
+
+    def __init__(self, eq_map=None, disc_map=None):
+        self._eq_map = eq_map or {}
+        self._disc_map = disc_map or {}
+
+    def count_eq(self, company: str, *, year=None) -> int:
+        return int(
+            self._eq_map.get(
+                (company, int(year) if year is not None else 0), 0
+            )
+        )
+
+    def discover_prefix(self, prefix: str, *, year=None, limit: int = 60):
+        return list(
+            self._disc_map.get(
+                (prefix, int(year) if year is not None else 0), []
+            )
+        )[:limit]
+
+
+@pytest.fixture()
+def mock_provider():
+    """Default mock provider with no hits unless tests inject maps."""
+    return _MockProvider()
