@@ -1,5 +1,29 @@
 from __future__ import annotations
 
+"""
+CPC vector construction for company–year aggregates.
+
+This module provides provider-agnostic routines to compute CPC distributions
+for a given assignee (company) and year. It wraps a provider’s
+`count_by_cpc_company_year` method and organizes results into vectors keyed
+by CPC section/class/subclass/group:
+
+- Codebooks: If explicit CPC codes are not supplied, the functions auto-load
+  CPC taxonomies from `cpc_codebook.py`. This means all vector construction
+  ultimately depends on `PatentsView` classification endpoints for the taxonomy,
+  even if the counts themselves come from other providers (EPO, USPTO).
+- Hierarchy: Prefix normalization ensures that CPC symbols are compared at
+  the requested granularity (e.g. 'Y02' for class, 'Y02C' for subclass).
+- Scope: Results are returned as `CPCVectorResult` dataclasses containing the
+  company, year, level, count bins, and metadata about the run.
+- Caveats: Group-level vectors can be prohibitively large in practice; most
+  workflows should restrict runs to section/class/subclass.
+
+This layer provides the vectors used in downstream hierarchical searches,
+but does not attempt assignee disambiguation, concurrency management, or
+rate-limit enforcement.
+"""
+
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Mapping, Optional
 
@@ -73,7 +97,8 @@ def cpc_class_vector(
 
     If `codes` is omitted, a codebook for the given `level` is auto-loaded
     (and cached) via PatentsView (shared CPC taxonomy). You can restrict that
-    codebook with `roots` (e.g., roots=['Y02','H01']).
+    codebook with `roots` (e.g., roots=['Y02','H01']). Thus only downstream
+    calls from codebook generation are fully provider agnostic.
 
     Notes:
       - No name disambiguation here; pass exactly what your provider expects.

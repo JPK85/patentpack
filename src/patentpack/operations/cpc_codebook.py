@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+"""
+CPC codebook construction utilities.
+
+This module builds and caches CPC taxonomies (sections, classes, subclasses,
+groups) used across patentpack. It queries the PatentsView classification
+endpoints once per level and writes results into JSON caches under
+`CACHE_DIR/codebook_{level}.json`:
+
+- `PatentsView` is the sole source for CPC taxonomy in `patentpack`.
+- A valid `PatentsView` API key (`PATENTPACK_PV_KEY`) must be present in the
+  environment.
+- Once cached locally, the codebooks are reused on all subsequent runs.
+- The codebooks are meant to support hierarchical CPC searches: section →
+  class → subclass → (optionally) group.
+"""
+
 import json
 from pathlib import Path
 from typing import Iterable, List, Literal, Optional, Tuple
@@ -30,7 +46,9 @@ def _pv_headers() -> dict:
     return h
 
 
-def _pv_post(path: str, *, page: int = 1, size: int = 1000, q: Optional[dict] = None) -> dict:
+def _pv_post(
+    path: str, *, page: int = 1, size: int = 1000, q: Optional[dict] = None
+) -> dict:
     """
     Minimal POST wrapper.
     - For classifications, PatentsView expects {"q": {...}, "o": {"page": ..., "size": ...}}
@@ -57,7 +75,11 @@ def _pv_collect_ids(path: str, list_key: str, id_key: str) -> List[str]:
     while True:
         data = _pv_post(path, page=page, size=size)
         rows = data.get(list_key) or []
-        ids = [(row.get(id_key) or "").strip().upper() for row in rows if row.get(id_key)]
+        ids = [
+            (row.get(id_key) or "").strip().upper()
+            for row in rows
+            if row.get(id_key)
+        ]
         if not ids:
             print(f"[codebook] {path} page {page} • got=0 • stopping")
             break
@@ -69,11 +91,15 @@ def _pv_collect_ids(path: str, list_key: str, id_key: str) -> List[str]:
                 seen_set.add(v)
                 seen.append(v)
         after = len(seen_set)
-        print(f"[codebook] {path} page {page} • got={len(ids)} • unique_total={after}")
+        print(
+            f"[codebook] {path} page {page} • got={len(ids)} • unique_total={after}"
+        )
 
         # stop conditions
         if len(ids) < size:
-            print(f"[codebook] {path} page {page} • short page ({len(ids)}<{size}) • stopping")
+            print(
+                f"[codebook] {path} page {page} • short page ({len(ids)}<{size}) • stopping"
+            )
             break
         if after == before:
             # page repeated same content (provider-side pagination bug)
@@ -88,29 +114,43 @@ def _pv_collect_ids(path: str, list_key: str, id_key: str) -> List[str]:
     return seen
 
 
-def _collect_groups_via_subclasses(roots: Optional[Iterable[str]]) -> List[str]:
+def _collect_groups_via_subclasses(
+    roots: Optional[Iterable[str]],
+) -> List[str]:
     """
     Robust collector for 'group' by sweeping per-subclass:
       POST /cpc_group/ with q={'cpc_subclass_id': <subclass>} and o={'size': 1000}
     This avoids broken multi-page behavior observed when trying to paginate cpc_group directly.
     """
     # Build/get the subclass codebook first
-    from .cpc_codebook import get_codebook  # local import to avoid circulars at import time
+    from .cpc_codebook import (  # local import to avoid circulars at import time
+        get_codebook,
+    )
 
     subclass_codes, meta = get_codebook("subclass")
     if roots:
         roots_u = [str(r).strip().upper() for r in roots if str(r).strip()]
-        subclass_codes = [s for s in subclass_codes if any(s.startswith(r) for r in roots_u)]
+        subclass_codes = [
+            s for s in subclass_codes if any(s.startswith(r) for r in roots_u)
+        ]
 
-    print(f"[codebook] group via subclasses • subclasses={len(subclass_codes)} (filtered)")
+    print(
+        f"[codebook] group via subclasses • subclasses={len(subclass_codes)} (filtered)"
+    )
     size = 1000
     seen_set = set()
     seen: List[str] = []
 
     for idx, sc in enumerate(subclass_codes, start=1):
-        data = _pv_post("cpc_group", page=1, size=size, q={"cpc_subclass_id": sc})
+        data = _pv_post(
+            "cpc_group", page=1, size=size, q={"cpc_subclass_id": sc}
+        )
         rows = data.get("cpc_groups") or []
-        ids = [(row.get("cpc_group_id") or "").strip().upper() for row in rows if row.get("cpc_group_id")]
+        ids = [
+            (row.get("cpc_group_id") or "").strip().upper()
+            for row in rows
+            if row.get("cpc_group_id")
+        ]
 
         before = len(seen_set)
         for v in ids:
@@ -122,12 +162,16 @@ def _collect_groups_via_subclasses(roots: Optional[Iterable[str]]) -> List[str]:
         # periodic progress
         added = after - before
         if added > 0 or (idx % 25 == 0):
-            print(f"[codebook] group @{sc} ({idx}/{len(subclass_codes)}) • +{added} → groups={after}")
+            print(
+                f"[codebook] group @{sc} ({idx}/{len(subclass_codes)}) • +{added} → groups={after}"
+            )
 
     return seen
 
 
-def _fetch_codes(level: Level, roots: Optional[Iterable[str]] = None) -> Tuple[List[str], str]:
+def _fetch_codes(
+    level: Level, roots: Optional[Iterable[str]] = None
+) -> Tuple[List[str], str]:
     """
     Fetch codes for the given level.
     - 'section': static A..H + Y
