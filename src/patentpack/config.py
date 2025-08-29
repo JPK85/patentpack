@@ -17,42 +17,36 @@ load_dotenv()
 # -----------------------------------------------------------------------------
 # Storage roots
 # -----------------------------------------------------------------------------
-DATA_DIR: Final[Path] = Path(__file__).resolve().parents[2] / "data"
-DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-OUT_DIR: Final[Path] = Path(os.getenv("PATENTPACK_OUT_DIR", DATA_DIR / "out"))
-CACHE_DIR: Final[Path] = Path(
-    os.getenv("PATENTPACK_CACHE_DIR", DATA_DIR / "cache")
-)
-OUT_DIR.mkdir(parents=True, exist_ok=True)
+# XDG cache location: ~/.cache/patentpack (or $XDG_CACHE_HOME/patentpack)
+_XDG_CACHE_HOME = Path(os.getenv("XDG_CACHE_HOME", Path.home() / ".cache"))
+CACHE_DIR = _XDG_CACHE_HOME / "patentpack"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 # -----------------------------------------------------------------------------
 # Generic filename builders
 # -----------------------------------------------------------------------------
+def _join(base_dir: Optional[Path], fname: str) -> Path:
+    return (base_dir / fname) if base_dir else Path(fname)
+
+
 def per_year_filename(
     *,
     year: int,
-    op: str,  # "operation" e.g., "counts", "list", "timeseries"
-    provider: Optional[str] = None,  # e.g., "uspto", "epo"
-    cpc: Optional[str] = None,  # e.g., "Y02"
+    op: str,
+    provider: Optional[str] = None,
+    cpc: Optional[str] = None,
     suffix: str = "csv",
-    prefix: str = "pp",  # "pp" for patentpack
+    prefix: str = "pp",
+    base_dir: Optional[Path] = None,
 ) -> Path:
-    """
-    Build a consistent per-year artifact filename like:
-      pp_counts_2019_uspto_Y02.csv
-      pp_list_2021_epo.csv
-    Only includes provider/cpc parts if supplied.
-    """
     parts = [prefix, op, f"{year:04d}"]
     if provider:
         parts.append(provider.lower())
     if cpc:
         parts.append(cpc.upper())
     fname = "_".join(parts) + f".{suffix.lstrip('.')}"
-    return OUT_DIR / fname
+    return _join(base_dir, fname)
 
 
 def panel_filename(
@@ -62,6 +56,7 @@ def panel_filename(
     cpc: Optional[str] = None,
     suffix: str = "csv",
     prefix: str = "pp",
+    base_dir: Optional[Path] = None,
 ) -> Path:
     """
     Panel-style artifact (multi-year/multi-entity), e.g.:
@@ -73,7 +68,7 @@ def panel_filename(
     if cpc:
         parts.append(cpc.upper())
     fname = "_".join(parts) + f".{suffix.lstrip('.')}"
-    return OUT_DIR / fname
+    return _join(base_dir, fname)
 
 
 def snapshot_filename(
@@ -84,6 +79,7 @@ def snapshot_filename(
     when: Optional[str] = None,  # e.g., "2025-08-24", "v1"
     suffix: str = "csv",
     prefix: str = "pp",
+    base_dir: Optional[Path] = None,
 ) -> Path:
     """
     Generic snapshot artifact (not tied to a single year), e.g.:
@@ -97,7 +93,7 @@ def snapshot_filename(
     if when:
         parts.append(when)
     fname = "_".join(parts) + f".{suffix.lstrip('.')}"
-    return OUT_DIR / fname
+    return _join(base_dir, fname)
 
 
 # -----------------------------------------------------------------------------
@@ -157,8 +153,6 @@ def epo_secret(required: bool = False) -> Optional[str]:
 # -----------------------------------------------------------------------------
 __all__ = [
     # roots
-    "DATA_DIR",
-    "OUT_DIR",
     "CACHE_DIR",
     # builders
     "per_year_filename",
