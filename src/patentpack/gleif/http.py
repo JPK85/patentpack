@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+import os
 import sys
 from typing import Any, Dict, Optional, Tuple
 
 import requests
+from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+load_dotenv()
+
 GLEIF_API = "https://api.gleif.org/api/v1/lei-records"
+_DEFAULT_UA = "patentpack-gleif-client"
 
 
 def make_session() -> requests.Session:
@@ -20,10 +25,12 @@ def make_session() -> requests.Session:
         raise_on_status=False,
     )
     s.mount("https://", HTTPAdapter(max_retries=retry))
+
+    ua = os.getenv("PATENTPACK_USER_AGENT", _DEFAULT_UA)
     s.headers.update(
         {
             "Accept": "application/vnd.api+json",
-            "User-Agent": "LUT-LBS-AI USPTO linker (contact: jaan-pauli.kimpimaki@lut.fi)",
+            "User-Agent": ua,
         }
     )
     return s
